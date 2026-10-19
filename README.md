@@ -1,6 +1,6 @@
-# ClinPudú — sitio web
+# ClinPudu — sitio web
 
-Página de presentación del proyecto ClinPudú (ES / EN / DE), publicada con GitHub Pages en https://clinpudu.cl.
+Página de presentación del proyecto ClinPudu (ES / EN / DE), publicada con GitHub Pages en https://clinpudu.cl.
 
 - `index.html` — página única; los textos de los tres idiomas están en el objeto `I18N` del script.
   El idioma se elige con el selector ES/EN/DE, con `?lang=es|en|de`, o según el idioma del navegador.
