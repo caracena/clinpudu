@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClinPudú — IA local para la documentación clínica</title>
+<meta name="description" content="ClinPudú: apoyo a la documentación clínica con inteligencia artificial que funciona completamente dentro del hospital.">
+<meta property="og:title" content="ClinPudú — Clinical. Compact. Secure.">
+<meta property="og:description" content="Local AI for clinical documentation: text autocompletion and an ambient scribe that never send patient data outside the hospital.">
+<meta property="og:image" content="https://clinpudu.cl/assets/logo.webp">
+<meta property="og:url" content="https://clinpudu.cl/">
+<meta name="theme-color" content="#1268a4">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #1268a4;
+    --blue-bright: #2280b7;
+    --blue-soft: #e8f2fa;
+    --green: #5ba63a;
+    --green-deep: #3f8a2e;
+    --green-soft: #eef7e8;
+    --brown: #946238;
+    --ink: #2f312c;
+    --ink-soft: #5b5e57;
+    --line: #e2e6e0;
+    --bg: #fbfcfa;
+    --card: #ffffff;
+    --radius: 18px;
+    --shadow: 0 1px 2px rgba(20, 40, 30, .05), 0 8px 28px rgba(20, 60, 90, .07);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .wordmark { font-family: "Montserrat", "Inter", sans-serif; line-height: 1.15; }
+  a { color: var(--blue); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+  /* Header */
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(251, 252, 250, .88);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .top .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .brand img { width: 30px; height: auto; }
+  .wordmark { font-weight: 800; font-size: 1.35rem; letter-spacing: -.01em; }
+  .wordmark .c { color: var(--blue); }
+  .wordmark .p { color: var(--green); }
+  nav.links { display: flex; gap: 22px; margin-left: auto; }
+  nav.links a { color: var(--ink-soft); text-decoration: none; font-weight: 500; font-size: .95rem; }
+  nav.links a:hover { color: var(--blue); }
+  .lang {
+    display: inline-flex; border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px; background: var(--card);
+  }
+  .lang button {
+    border: 0; background: transparent; cursor: pointer;
+    font: 600 .8rem/1 "Inter", sans-serif; letter-spacing: .04em;
+    color: var(--ink-soft); padding: 7px 11px; border-radius: 999px;
+  }
+  .lang button[aria-pressed="true"] { background: var(--blue); color: #fff; }
+  .lang button:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+
+  /* Hero */
+  .hero { padding: 72px 0 56px; position: relative; overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; inset: -40% -20% auto auto; width: 720px; height: 720px;
+    background: radial-gradient(closest-side, rgba(91, 166, 58, .13), transparent 70%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: ""; position: absolute; inset: auto auto -50% -20%; width: 720px; height: 720px;
+    background: radial-gradient(closest-side, rgba(34, 128, 183, .12), transparent 70%);
+    pointer-events: none;
+  }
+  .hero .wrap { display: grid; grid-template-columns: 1.25fr .75fr; gap: 48px; align-items: center; position: relative; z-index: 1; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: .82rem; font-weight: 600; color: var(--green-deep);
+    background: var(--green-soft); border-radius: 999px; padding: 6px 12px;
+  }
+  .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .hero h1 { font-size: clamp(2.1rem, 4.6vw, 3.4rem); margin: 18px 0 14px; letter-spacing: -.02em; }
+  .hero h1 .c { color: var(--blue); }
+  .hero h1 .p { color: var(--green); }
+  .tagline { font-family: "Montserrat", sans-serif; font-weight: 600; color: var(--ink-soft); font-size: 1.15rem; margin: 0 0 18px; }
+  .lead { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; margin: 0 0 28px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+    font-weight: 600; padding: 12px 20px; border-radius: 12px; transition: transform .15s, box-shadow .15s;
+  }
+  .btn.primary { background: var(--blue); color: #fff; box-shadow: 0 6px 18px rgba(18, 104, 164, .25); }
+  .btn.secondary { background: var(--card); color: var(--blue); border: 1px solid var(--line); }
+  .btn:hover { transform: translateY(-1px); }
+  .hero-logo { justify-self: center; width: min(320px, 70vw); filter: drop-shadow(0 18px 30px rgba(18, 104, 164, .18)); }
+
+  /* Sections */
+  section { padding: 72px 0; }
+  .section-head { max-width: 720px; margin-bottom: 36px; }
+  .kicker { font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green-deep); }
+  section h2 { font-size: clamp(1.7rem, 3.2vw, 2.3rem); margin: 8px 0 12px; letter-spacing: -.015em; }
+  .section-head p { color: var(--ink-soft); margin: 0; font-size: 1.05rem; }
+  .alt { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+  /* Tools */
+  .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .tool {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 28px; display: flex; flex-direction: column;
+  }
+  .tool .tag {
+    align-self: flex-start; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    padding: 5px 10px; border-radius: 8px;
+  }
+  .tool.complete .tag { background: var(--blue-soft); color: var(--blue); }
+  .tool.scribe .tag { background: var(--green-soft); color: var(--green-deep); }
+  .tool h3 { font-size: 1.45rem; margin: 14px 0 8px; }
+  .tool.complete h3 { color: var(--blue); }
+  .tool.scribe h3 { color: var(--green-deep); }
+  .tool > p { color: var(--ink-soft); margin: 0 0 20px; }
+
+  /* Autocomplete demo */
+  .demo {
+    margin-top: auto; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fcfdfe;
+  }
+  .demo-bar {
+    display: flex; align-items: center; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--line);
+    background: #f4f7f9; font-size: .78rem; color: var(--ink-soft);
+  }
+  .demo-bar i { width: 9px; height: 9px; border-radius: 50%; background: #d6dbe0; display: inline-block; }
+  .demo-bar span { margin-left: 8px; }
+  .demo-body {
+    font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .88rem; padding: 16px; min-height: 118px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .demo-body .typed { color: var(--ink); }
+  .demo-body .ghost { color: #a3aab1; }
+  .demo-body .caret {
+    display: inline-block; width: 2px; height: 1.05em; background: var(--blue); vertical-align: -2px;
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .demo-foot { display: flex; align-items: center; gap: 8px; padding: 8px 12px 12px; font-size: .8rem; color: var(--ink-soft); }
+  kbd {
+    font: 600 .75rem "Inter", sans-serif; border: 1px solid #cfd5da; border-bottom-width: 2px;
+    border-radius: 6px; padding: 2px 7px; background: #fff; color: var(--ink); transition: background .15s;
+  }
+  kbd.hit { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  /* Scribe features */
+  .features { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .features li { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; }
+  .features .ic {
+    width: 34px; height: 34px; border-radius: 10px; background: var(--green-soft); color: var(--green-deep);
+    display: grid; place-items: center;
+  }
+  .features .ic svg { width: 18px; height: 18px; }
+  .features strong { display: block; font-weight: 600; }
+  .features span { color: var(--ink-soft); font-size: .94rem; }
+
+  /* Flow */
+  .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; counter-reset: step; margin-top: 8px; }
+  .flow .step { position: relative; padding: 0 10px; text-align: center; }
+  .flow .step::before {
+    counter-increment: step; content: counter(step);
+    display: grid; place-items: center; margin: 0 auto 12px; width: 40px; height: 40px; border-radius: 50%;
+    font: 700 1rem "Montserrat", sans-serif; color: #fff; background: var(--blue);
+    position: relative; z-index: 1;
+  }
+  .flow .step:nth-child(n+3)::before { background: var(--blue-bright); }
+  .flow .step:nth-child(n+4)::before { background: var(--green); }
+  .flow .step:nth-child(5)::before { background: var(--green-deep); }
+  .flow .step::after {
+    content: ""; position: absolute; top: 20px; left: 50%; width: 100%; height: 2px;
+    background: linear-gradient(90deg, var(--blue-bright), var(--green));
+  }
+  .flow .step:last-child::after { display: none; }
+  .flow h4 { margin: 0 0 4px; font-size: .98rem; font-family: "Montserrat", sans-serif; }
+  .flow p { margin: 0; font-size: .88rem; color: var(--ink-soft); }
+
+  /* Results */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px;
+    box-shadow: var(--shadow); border-top: 4px solid var(--blue);
+  }
+  .stat.g { border-top-color: var(--green); }
+  .stat .num { font: 800 2.3rem/1 "Montserrat", sans-serif; letter-spacing: -.02em; color: var(--blue); }
+  .stat.g .num { color: var(--green-deep); }
+  .stat .who { font-size: .76rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin: 12px 0 4px; }
+  .stat p { margin: 0; font-size: .94rem; }
+  .note {
+    margin-top: 22px; display: flex; gap: 10px; align-items: flex-start; font-size: .92rem; color: var(--ink-soft);
+    background: #fff8ef; border: 1px solid #f1e0c8; border-radius: 12px; padding: 12px 16px;
+  }
+  .note b { color: var(--brown); }
+
+  /* Privacy */
+  .privacy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .pcard { padding: 24px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
+  .pcard .ic {
+    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 14px;
+    background: linear-gradient(135deg, var(--blue), var(--green)); color: #fff;
+  }
+  .pcard .ic svg { width: 22px; height: 22px; }
+  .pcard h3 { font-size: 1.1rem; margin: 0 0 6px; }
+  .pcard p { margin: 0; color: var(--ink-soft); font-size: .95rem; }
+
+  /* About */
+  .about { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .person, .residency {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow);
+  }
+  .person h3, .residency h3 { margin: 0 0 6px; font-size: 1.25rem; }
+  .person ul { list-style: none; margin: 10px 0 0; padding: 0; color: var(--ink-soft); }
+  .person li { padding: 4px 0; }
+  .residency p { margin: 0 0 10px; color: var(--ink-soft); }
+  .residency .when { font-weight: 600; color: var(--green-deep); }
+
+  footer { padding: 36px 0 48px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: .9rem; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+
+  @media (max-width: 900px) {
+    nav.links { display: none; }
+    .lang { margin-left: auto; }
+    .hero { padding: 48px 0 40px; }
+    .hero .wrap { grid-template-columns: 1fr; gap: 28px; }
+    .hero-logo { order: -1; width: 180px; }
+    .tools, .about { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .privacy { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: 1fr; gap: 18px; }
+    .flow .step { display: grid; grid-template-columns: 40px 1fr; gap: 14px; text-align: left; padding: 0; }
+    .flow .step::before { margin: 0; grid-row: span 2; }
+    .flow .step::after { top: 40px; left: 19px; width: 2px; height: calc(100% - 22px); }
+    section { padding: 56px 0; }
+  }
+  @media (max-width: 480px) {
+    .stats { grid-template-columns: 1fr; }
+    .wordmark { font-size: 1.15rem; }
+    .lang button { padding: 7px 9px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .demo-body .caret { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#" aria-label="ClinPudú">
+      <img src="assets/shield.webp" alt="" width="30" height="35">
+      <span class="wordmark"><span class="c">Clin</span><span class="p">Pudú</span></span>
+    </a>
+    <nav class="links">
+      <a href="#tools" data-i18n="nav.tools"></a>
+      <a href="#results" data-i18n="nav.results"></a>
+      <a href="#privacy" data-i18n="nav.privacy"></a>
+      <a href="#about" data-i18n="nav.about"></a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="es" lang="es" title="Español">ES</button>
+      <button type="button" data-lang="en" lang="en" title="English">EN</button>
+      <button type="button" data-lang="de" lang="de" title="Deutsch">DE</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow" data-i18n="hero.eyebrow"></span>
+        <h1><span class="c">Clin</span><span class="p">Pudú</span><br><span data-i18n="hero.title"></span></h1>
+        <p class="tagline" data-i18n="hero.tagline"></p>
+        <p class="lead" data-i18n="hero.lead"></p>
+        <div class="cta">
+          <a class="btn primary" href="#tools" data-i18n="hero.cta1"></a>
+          <a class="btn secondary" href="#privacy" data-i18n="hero.cta2"></a>
+        </div>
+      </div>
+      <img class="hero-logo" src="assets/shield.webp" alt="ClinPudú logo" width="470" height="550">
+    </div>
+  </section>
+
+  <section id="tools" class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker" data-i18n="tools.kicker"></span>
+        <h2 data-i18n="tools.title"></h2>
+        <p data-i18n="tools.intro"></p>
+      </div>
+
+      <div class="tools">
+        <article class="tool complete">
+          <span class="tag" data-i18n="tools.c.tag"></span>
+          <h3>ClinPudú</h3>
+          <p data-i18n="tools.c.desc"></p>
+          <div class="demo" aria-hidden="true">
+            <div class="demo-bar"><i></i><i></i><i></i><span data-i18n="demo.window"></span></div>
+            <div class="demo-body" id="demo"><span class="typed"></span><span class="caret"></span><span class="ghost"></span></div>
+            <div class="demo-foot"><kbd id="tabkey">Tab</kbd><span data-i18n="demo.hint"></span></div>
+          </div>
+        </article>
+
+        <article class="tool scribe">
+          <span class="tag" data-i18n="tools.s.tag"></span>
+          <h3>ClinPudú-scribe</h3>
+          <p data-i18n="tools.s.desc"></p>
+          <ul class="features">
+            <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></span>
+              <div><strong data-i18n="f1.t"></strong><span data-i18n="f1.d"></span></div></li>
+            <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg></span>
+              <div><strong data-i18n="f2.t"></strong><span data-i18n="f2.d"></span></div></li>
+            <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 20c0-2 1-4 3-4.5 2 .5 3 2.5 3 4.5"/></svg></span>
+              <div><strong data-i18n="f3.t"></strong><span data-i18n="f3.d"></span></div></li>
+            <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span>
+              <div><strong data-i18n="f4.t"></strong><span data-i18n="f4.d"></span></div></li>
+            <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span>
+              <div><strong data-i18n="f5.t"></strong><span data-i18n="f5.d"></span></div></li>
+            <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+              <div><strong data-i18n="f6.t"></strong><span data-i18n="f6.d"></span></div></li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="workflow">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker" data-i18n="flow.kicker"></span>
+        <h2 data-i18n="flow.title"></h2>
+      </div>
+      <div class="flow">
+        <div class="step"><h4 data-i18n="flow.1.t"></h4><p data-i18n="flow.1.d"></p></div>
+        <div class="step"><h4 data-i18n="flow.2.t"></h4><p data-i18n="flow.2.d"></p></div>
+        <div class="step"><h4 data-i18n="flow.3.t"></h4><p data-i18n="flow.3.d"></p></div>
+        <div class="step"><h4 data-i18n="flow.4.t"></h4><p data-i18n="flow.4.d"></p></div>
+        <div class="step"><h4 data-i18n="flow.5.t"></h4><p data-i18n="flow.5.d"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="results" class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker" data-i18n="res.kicker"></span>
+        <h2 data-i18n="res.title"></h2>
+        <p data-i18n="res.intro"></p>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="num">31–41%</div><div class="who">ClinPudú</div><p data-i18n="res.s1"></p></div>
+        <div class="stat"><div class="num">12%</div><div class="who">ClinPudú</div><p data-i18n="res.s2"></p></div>
+        <div class="stat g"><div class="num">89%</div><div class="who">ClinPudú-scribe</div><p data-i18n="res.s3"></p></div>
+        <div class="stat g"><div class="num">78%</div><div class="who">ClinPudú-scribe</div><p data-i18n="res.s4"></p></div>
+      </div>
+      <div class="note"><span>⚠</span><span data-i18n-html="res.note"></span></div>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker" data-i18n="priv.kicker"></span>
+        <h2 data-i18n="priv.title"></h2>
+        <p data-i18n="priv.intro"></p>
+      </div>
+      <div class="privacy">
+        <div class="pcard">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <h3 data-i18n="priv.1.t"></h3><p data-i18n="priv.1.d"></p>
+        </div>
+        <div class="pcard">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M10 21v-5h4v5M12 8v4M10 10h4"/></svg></div>
+          <h3 data-i18n="priv.2.t"></h3><p data-i18n="priv.2.d"></p>
+        </div>
+        <div class="pcard">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <h3 data-i18n="priv.3.t"></h3><p data-i18n="priv.3.d"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker" data-i18n="about.kicker"></span>
+        <h2 data-i18n="about.title"></h2>
+      </div>
+      <div class="about">
+        <div class="person">
+          <h3>Claudio Aracena</h3>
+          <ul>
+            <li data-i18n="about.role1"></li>
+            <li data-i18n="about.role2"></li>
+          </ul>
+        </div>
+        <div class="residency">
+          <h3>IPAI Science Residency 2026</h3>
+          <p data-i18n="about.res"></p>
+          <p class="when" data-i18n="about.when"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="wordmark" style="font-size:1rem"><span class="c">Clin</span><span class="p">Pudú</span></span>
+    <span data-i18n="foot.tag"></span>
+    <span>© 2026 ClinPudú</span>
+  </div>
+</footer>
+
+<script>
+const I18N = {
+  es: {
+    "meta.title": "ClinPudú — IA local para la documentación clínica",
+    "nav.tools": "Herramientas", "nav.results": "Resultados", "nav.privacy": "Privacidad", "nav.about": "Proyecto",
+    "hero.eyebrow": "Proyecto de investigación aplicada",
+    "hero.title": "Apoyo para la documentación clínica con IA local",
+    "hero.tagline": "Clínico. Compacto. Seguro.",
+    "hero.lead": "ClinPudú busca reducir el tiempo que médicos y médicas dedican a escribir la ficha clínica, usando modelos de inteligencia artificial que funcionan completamente dentro del hospital. Ningún texto ni audio del paciente sale de la institución.",
+    "hero.cta1": "Conocer las herramientas", "hero.cta2": "Privacidad y ética",
+    "tools.kicker": "Dos herramientas",
+    "tools.title": "Menos tiempo escribiendo, más tiempo con el paciente",
+    "tools.intro": "ClinPudú autocompleta el texto mientras se escribe; ClinPudú-scribe escucha la consulta y prepara un borrador de nota para que el médico lo revise y firme.",
+    "tools.c.tag": "Autocompletado de texto clínico",
+    "tools.c.desc": "Mientras el médico escribe una evolución, interconsulta o epicrisis, ClinPudú sugiere las próximas palabras en gris: con la tecla Tab las acepta y, si no le sirven, sigue escribiendo. Funciona con un modelo de lenguaje pequeño (0,5 mil millones de parámetros) ajustado con textos clínicos en español e inglés, que corre en un computador común del hospital, sin internet. Cada institución puede adaptar el modelo a su propio vocabulario y estilo sin entregar sus datos a terceros.",
+    "demo.window": "Evolución — ficha clínica", "demo.hint": "acepta la sugerencia",
+    "demo.lines": [
+      ["Paciente de 67 años, hipertenso, ", "consulta por dolor torácico opresivo de 2 horas de evolución."],
+      ["Al examen físico: ", "paciente vigil, orientado, hemodinámicamente estable."],
+      ["Plan: ", "control de signos vitales, ECG seriado y troponinas."]
+    ],
+    "tools.s.tag": "Borrador de nota desde la consulta",
+    "tools.s.desc": "Un “escriba” ambiental para consultas en español: escucha la conversación médico–paciente y, al terminar, entrega un borrador de nota que el médico revisa, corrige y firma. Corre entero en un notebook, con la red bloqueada durante el uso.",
+    "f1.t": "Consentimiento", "f1.d": "El paciente acepta antes de grabar; el botón “Detener y borrar” elimina audio, transcripción y nota en cualquier momento.",
+    "f2.t": "Transcripción en vivo", "f2.d": "El texto aparece en pantalla durante la consulta.",
+    "f3.t": "Segunda transcripción, más precisa", "f3.d": "Al cerrar la consulta separa quién habla: médico, paciente o acompañante.",
+    "f4.t": "Hechos con evidencia", "f4.d": "Cada dato de la nota queda ligado a la frase exacta que lo respalda.",
+    "f5.t": "Nota estructurada", "f5.d": "Motivo de consulta, anamnesis, examen físico, hipótesis diagnóstica (solo la dicha por el médico) y plan. Adaptable al formato deseado.",
+    "f6.t": "Revisión y firma", "f6.d": "Las frases dudosas se marcan con ⚠; nada se exporta sin la firma del médico. Una extensión de navegador puede rellenar la ficha, sin presionar nunca “Guardar”.",
+    "flow.kicker": "ClinPudú-scribe paso a paso", "flow.title": "De la conversación a la nota firmada",
+    "flow.1.t": "Consentimiento", "flow.1.d": "El paciente acepta la grabación.",
+    "flow.2.t": "Consulta", "flow.2.d": "Transcripción en vivo, sin conexión.",
+    "flow.3.t": "Cierre", "flow.3.d": "Transcripción precisa con hablantes separados.",
+    "flow.4.t": "Borrador", "flow.4.d": "Hechos con evidencia y nota estructurada.",
+    "flow.5.t": "Firma", "flow.5.d": "El médico revisa, corrige y firma.",
+    "res.kicker": "Resultados y estado actual", "res.title": "Prototipos que ya funcionan",
+    "res.intro": "Ambas herramientas funcionan como prototipo y se han evaluado solo con datos públicos o simulados.",
+    "res.s1": "de pulsaciones de teclado ahorradas con el modelo ajustado.",
+    "res.s2": "de pulsaciones ahorradas sin ajuste, como punto de comparación.",
+    "res.s3": "de los hechos extraídos son correctos.",
+    "res.s4": "de lo que escribió el clínico queda cubierto por la nota, en unos 3 minutos de proceso por consulta.",
+    "res.note": "<b>Prototipo de investigación.</b> Evaluado únicamente con datos públicos o simulados; no es un dispositivo médico certificado.",
+    "priv.kicker": "Privacidad, seguridad y ética", "priv.title": "Los datos del paciente no salen del hospital",
+    "priv.intro": "La privacidad no es un agregado: es el punto de partida del diseño.",
+    "priv.1.t": "Todo es local", "priv.1.d": "Los modelos se instalan una vez y luego funcionan sin conexión a internet.",
+    "priv.2.t": "Sin datos clínicos fuera del hospital", "priv.2.d": "Ni texto ni audio se envían a servicios en la nube; el audio se borra tras la firma.",
+    "priv.3.t": "El médico decide", "priv.3.d": "Las sugerencias y borradores siempre se revisan; nada se guarda ni se exporta sin la firma del médico.",
+    "about.kicker": "Sobre el proyecto", "about.title": "Quién está detrás",
+    "about.role1": "Profesor Asistente — Universidad Adolfo Ibáñez",
+    "about.role2": "Residente científico — IPAI Science Residency 2026",
+    "about.res": "ClinPudú se desarrolla en la IPAI Science Residency 2026 en Heilbronn, Alemania.",
+    "about.when": "Agosto 2026 – julio 2027",
+    "foot.tag": "IA clínica local, compacta y segura."
+  },
+  en: {
+    "meta.title": "ClinPudú — Local AI for clinical documentation",
+    "nav.tools": "Tools", "nav.results": "Results", "nav.privacy": "Privacy", "nav.about": "Project",
+    "hero.eyebrow": "Applied research project",
+    "hero.title": "Clinical documentation support with local AI",
+    "hero.tagline": "Clinical. Compact. Secure.",
+    "hero.lead": "ClinPudú aims to reduce the time physicians spend writing clinical records, using artificial intelligence models that run entirely inside the hospital. No patient text or audio ever leaves the institution.",
+    "hero.cta1": "Explore the tools", "hero.cta2": "Privacy & ethics",
+    "tools.kicker": "Two tools",
+    "tools.title": "Less time typing, more time with patients",
+    "tools.intro": "ClinPudú autocompletes text as you write; ClinPudú-scribe listens to the consultation and prepares a draft note for the physician to review and sign.",
+    "tools.c.tag": "Clinical text autocompletion",
+    "tools.c.desc": "While the physician writes a progress note, consultation or discharge summary, ClinPudú suggests the next words in grey: press Tab to accept them, or simply keep typing. It runs on a small language model (0.5 billion parameters) fine-tuned on Spanish and English clinical text, on a regular hospital computer, with no internet. Each institution can adapt the model to its own vocabulary and writing style without handing its data to third parties.",
+    "demo.window": "Progress note — clinical record", "demo.hint": "accepts the suggestion",
+    "demo.lines": [
+      ["67-year-old hypertensive patient ", "presenting with oppressive chest pain of 2 hours' duration."],
+      ["On physical examination: ", "patient alert, oriented, hemodynamically stable."],
+      ["Plan: ", "vital sign monitoring, serial ECG and troponins."]
+    ],
+    "tools.s.tag": "Draft note from the consultation",
+    "tools.s.desc": "An ambient “scribe” for Spanish-language consultations: it listens to the doctor–patient conversation and, at the end, delivers a draft note that the physician reviews, corrects and signs. It runs entirely on a laptop, with the network blocked during use.",
+    "f1.t": "Consent", "f1.d": "The patient agrees before recording; the “Stop and delete” button erases audio, transcript and note at any time.",
+    "f2.t": "Live transcription", "f2.d": "Text appears on screen during the consultation.",
+    "f3.t": "Second, more accurate transcription", "f3.d": "When the visit ends, it separates who is speaking: physician, patient or companion.",
+    "f4.t": "Evidence-linked facts", "f4.d": "Every item in the note is linked to the exact sentence that supports it.",
+    "f5.t": "Structured note", "f5.d": "Chief complaint, history, physical exam, diagnostic hypothesis (only as stated by the physician) and plan. Adaptable to any desired format.",
+    "f6.t": "Review and sign-off", "f6.d": "Uncertain sentences are flagged with ⚠; nothing is exported without the physician’s signature. A browser extension can fill in the record fields, never pressing “Save”.",
+    "flow.kicker": "ClinPudú-scribe step by step", "flow.title": "From conversation to signed note",
+    "flow.1.t": "Consent", "flow.1.d": "The patient agrees to recording.",
+    "flow.2.t": "Consultation", "flow.2.d": "Live transcription, fully offline.",
+    "flow.3.t": "Wrap-up", "flow.3.d": "Accurate transcript with separated speakers.",
+    "flow.4.t": "Draft", "flow.4.d": "Evidence-linked facts and a structured note.",
+    "flow.5.t": "Sign-off", "flow.5.d": "The physician reviews, corrects and signs.",
+    "res.kicker": "Results and current status", "res.title": "Working prototypes",
+    "res.intro": "Both tools work as prototypes and have been evaluated only on public or simulated data.",
+    "res.s1": "of keystrokes saved with the fine-tuned model.",
+    "res.s2": "of keystrokes saved without fine-tuning, as a baseline.",
+    "res.s3": "of extracted facts are correct.",
+    "res.s4": "of what the clinician wrote is covered by the note, in about 3 minutes of processing per visit.",
+    "res.note": "<b>Research prototype.</b> Evaluated only on public or simulated data; not a certified medical device.",
+    "priv.kicker": "Privacy, security and ethics", "priv.title": "Patient data never leaves the hospital",
+    "priv.intro": "Privacy is not an add-on: it is the starting point of the design.",
+    "priv.1.t": "Everything is local", "priv.1.d": "Models are installed once and then work without an internet connection.",
+    "priv.2.t": "No clinical data outside the hospital", "priv.2.d": "Neither text nor audio is sent to cloud services; audio is deleted after sign-off.",
+    "priv.3.t": "The physician decides", "priv.3.d": "Suggestions and drafts are always reviewed; nothing is saved or exported without the physician’s signature.",
+    "about.kicker": "About the project", "about.title": "Who is behind it",
+    "about.role1": "Assistant Professor — Universidad Adolfo Ibáñez",
+    "about.role2": "Scientist in residence — IPAI Science Residency 2026",
+    "about.res": "ClinPudú is being developed during the IPAI Science Residency 2026 in Heilbronn, Germany.",
+    "about.when": "August 2026 – July 2027",
+    "foot.tag": "Local, compact and secure clinical AI."
+  },
+  de: {
+    "meta.title": "ClinPudú — Lokale KI für die klinische Dokumentation",
+    "nav.tools": "Werkzeuge", "nav.results": "Ergebnisse", "nav.privacy": "Datenschutz", "nav.about": "Projekt",
+    "hero.eyebrow": "Angewandtes Forschungsprojekt",
+    "hero.title": "Unterstützung der klinischen Dokumentation mit lokaler KI",
+    "hero.tagline": "Klinisch. Kompakt. Sicher.",
+    "hero.lead": "ClinPudú soll die Zeit verkürzen, die Ärztinnen und Ärzte mit dem Schreiben der Patientenakte verbringen – mit KI-Modellen, die vollständig innerhalb des Krankenhauses laufen. Kein Text und keine Audioaufnahme des Patienten verlässt die Einrichtung.",
+    "hero.cta1": "Werkzeuge entdecken", "hero.cta2": "Datenschutz & Ethik",
+    "tools.kicker": "Zwei Werkzeuge",
+    "tools.title": "Weniger Tippen, mehr Zeit für Patienten",
+    "tools.intro": "ClinPudú vervollständigt Text beim Schreiben; ClinPudú-scribe hört beim Gespräch zu und erstellt einen Notizentwurf, den die Ärztin oder der Arzt prüft und unterschreibt.",
+    "tools.c.tag": "Autovervollständigung klinischer Texte",
+    "tools.c.desc": "Während ein Verlaufsbericht, Konsil oder Entlassbrief geschrieben wird, schlägt ClinPudú die nächsten Wörter in Grau vor: Mit der Tab-Taste werden sie übernommen, sonst schreibt man einfach weiter. Es nutzt ein kleines Sprachmodell (0,5 Milliarden Parameter), feinabgestimmt auf spanische und englische klinische Texte, das auf einem gewöhnlichen Krankenhausrechner ohne Internet läuft. Jede Einrichtung kann das Modell an ihr eigenes Vokabular und ihren Schreibstil anpassen, ohne Daten an Dritte weiterzugeben.",
+    "demo.window": "Verlaufsbericht — Patientenakte", "demo.hint": "übernimmt den Vorschlag",
+    "demo.lines": [
+      ["67-jähriger Patient mit Hypertonie, ", "stellt sich mit drückendem Thoraxschmerz seit 2 Stunden vor."],
+      ["Körperliche Untersuchung: ", "Patient wach, orientiert, hämodynamisch stabil."],
+      ["Procedere: ", "Vitalzeichenkontrolle, serielles EKG und Troponin."]
+    ],
+    "tools.s.tag": "Notizentwurf aus dem Arztgespräch",
+    "tools.s.desc": "Ein ambienter „Schreiber“ für spanischsprachige Sprechstunden: Er hört das Arzt-Patienten-Gespräch mit und liefert am Ende einen Notizentwurf, den die Ärztin oder der Arzt prüft, korrigiert und unterschreibt. Er läuft vollständig auf einem Notebook, mit gesperrtem Netzwerk während der Nutzung.",
+    "f1.t": "Einwilligung", "f1.d": "Der Patient stimmt vor der Aufnahme zu; die Schaltfläche „Stoppen und löschen“ entfernt Audio, Transkript und Notiz jederzeit.",
+    "f2.t": "Live-Transkription", "f2.d": "Der Text erscheint während des Gesprächs auf dem Bildschirm.",
+    "f3.t": "Zweite, genauere Transkription", "f3.d": "Nach dem Gespräch wird unterschieden, wer spricht: Arzt, Patient oder Begleitperson.",
+    "f4.t": "Belegte Fakten", "f4.d": "Jede Angabe in der Notiz ist mit dem genauen Satz verknüpft, der sie belegt.",
+    "f5.t": "Strukturierte Notiz", "f5.d": "Konsultationsgrund, Anamnese, körperliche Untersuchung, Verdachtsdiagnose (nur wie vom Arzt geäußert) und Procedere. An jedes gewünschte Format anpassbar.",
+    "f6.t": "Prüfung und Unterschrift", "f6.d": "Unsichere Sätze werden mit ⚠ markiert; nichts wird ohne ärztliche Unterschrift exportiert. Eine Browsererweiterung kann die Felder der Akte ausfüllen, ohne jemals „Speichern“ zu drücken.",
+    "flow.kicker": "ClinPudú-scribe Schritt für Schritt", "flow.title": "Vom Gespräch zur unterschriebenen Notiz",
+    "flow.1.t": "Einwilligung", "flow.1.d": "Der Patient stimmt der Aufnahme zu.",
+    "flow.2.t": "Gespräch", "flow.2.d": "Live-Transkription, komplett offline.",
+    "flow.3.t": "Abschluss", "flow.3.d": "Genaues Transkript mit getrennten Sprechern.",
+    "flow.4.t": "Entwurf", "flow.4.d": "Belegte Fakten und strukturierte Notiz.",
+    "flow.5.t": "Unterschrift", "flow.5.d": "Der Arzt prüft, korrigiert und unterschreibt.",
+    "res.kicker": "Ergebnisse und aktueller Stand", "res.title": "Funktionierende Prototypen",
+    "res.intro": "Beide Werkzeuge funktionieren als Prototyp und wurden ausschließlich mit öffentlichen oder simulierten Daten evaluiert.",
+    "res.s1": "eingesparte Tastenanschläge mit dem feinabgestimmten Modell.",
+    "res.s2": "eingesparte Tastenanschläge ohne Feinabstimmung, als Vergleichswert.",
+    "res.s3": "der extrahierten Fakten sind korrekt.",
+    "res.s4": "dessen, was der Kliniker geschrieben hat, deckt die Notiz ab – bei etwa 3 Minuten Verarbeitung pro Gespräch.",
+    "res.note": "<b>Forschungsprototyp.</b> Nur mit öffentlichen oder simulierten Daten evaluiert; kein zertifiziertes Medizinprodukt.",
+    "priv.kicker": "Datenschutz, Sicherheit und Ethik", "priv.title": "Patientendaten verlassen das Krankenhaus nicht",
+    "priv.intro": "Datenschutz ist kein Zusatz, sondern der Ausgangspunkt des Designs.",
+    "priv.1.t": "Alles lokal", "priv.1.d": "Die Modelle werden einmal installiert und funktionieren danach ohne Internetverbindung.",
+    "priv.2.t": "Keine klinischen Daten außerhalb des Krankenhauses", "priv.2.d": "Weder Text noch Audio werden an Cloud-Dienste gesendet; das Audio wird nach der Unterschrift gelöscht.",
+    "priv.3.t": "Die Ärztin, der Arzt entscheidet", "priv.3.d": "Vorschläge und Entwürfe werden immer geprüft; nichts wird ohne ärztliche Unterschrift gespeichert oder exportiert.",
+    "about.kicker": "Über das Projekt", "about.title": "Wer dahintersteht",
+    "about.role1": "Assistenzprofessor — Universidad Adolfo Ibáñez",
+    "about.role2": "Scientist in Residence — IPAI Science Residency 2026",
+    "about.res": "ClinPudú wird im Rahmen der IPAI Science Residency 2026 in Heilbronn, Deutschland, entwickelt.",
+    "about.when": "August 2026 – Juli 2027",
+    "foot.tag": "Lokale, kompakte und sichere klinische KI."
+  }
+};
+
+const LANGS = Object.keys(I18N);
+let current = "es";
+
+function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function stored(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+function initialLang() {
+  const q = new URLSearchParams(location.search).get("lang");
+  if (LANGS.includes(q)) return q;
+  const s = stored("clinpudu-lang");
+  if (LANGS.includes(s)) return s;
+  for (const l of navigator.languages || [navigator.language || ""]) {
+    const base = (l || "").slice(0, 2).toLowerCase();
+    if (LANGS.includes(base)) return base;
+  }
+  return "es";
+}
+
+function setLang(lang) {
+  current = lang;
+  const t = I18N[lang];
+  document.documentElement.lang = lang;
+  document.title = t["meta.title"];
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t[el.dataset.i18n] ?? ""; });
+  document.querySelectorAll("[data-i18n-html]").forEach(el => { el.innerHTML = t[el.dataset.i18nHtml] ?? ""; });
+  document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  store("clinpudu-lang", lang);
+  demo.restart();
+}
+
+/* Autocomplete demo: type the prefix, show ghost suggestion, "press" Tab, accept. */
+const demo = (() => {
+  const typed = document.querySelector("#demo .typed");
+  const ghost = document.querySelector("#demo .ghost");
+  const key = document.getElementById("tabkey");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let timer = null, run = 0;
+  const wait = ms => new Promise(r => { timer = setTimeout(r, ms); });
+
+  async function loop(id) {
+    let done = "";
+    const lines = I18N[current]["demo.lines"];
+    for (let i = 0; ; i = (i + 1) % lines.length) {
+      if (i === 0) done = "";
+      const [prefix, suggestion] = lines[i];
+      if (reduce) {
+        typed.textContent = lines.map(l => l.join("")).join("\n");
+        ghost.textContent = "";
+        return;
+      }
+      for (let k = 1; k <= prefix.length; k++) {
+        typed.textContent = done + prefix.slice(0, k);
+        await wait(38 + Math.random() * 40);
+        if (id !== run) return;
+      }
+      typed.textContent = done + prefix;
+      await wait(350); if (id !== run) return;
+      ghost.textContent = suggestion;
+      await wait(1300); if (id !== run) return;
+      key.classList.add("hit");
+      await wait(220); if (id !== run) return;
+      key.classList.remove("hit");
+      ghost.textContent = "";
+      done = done + prefix + suggestion + "\n";
+      typed.textContent = done;
+      await wait(i === lines.length - 1 ? 2600 : 700); if (id !== run) return;
+    }
+  }
+  return {
+    restart() {
+      clearTimeout(timer); run++;
+      typed.textContent = ""; ghost.textContent = ""; key.classList.remove("hit");
+      loop(run);
+    }
+  };
+})();
+
+document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
+setLang(initialLang());
+</script>
+</body>
+</html>
