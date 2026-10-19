@@ -227,6 +227,12 @@
   .person h3, .residency h3 { margin: 0 0 6px; font-size: 1.25rem; }
   .person ul { list-style: none; margin: 10px 0 0; padding: 0; color: var(--ink-soft); }
   .person li { padding: 4px 0; }
+  .person .site {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
+    font-weight: 600; text-decoration: none; color: var(--blue);
+  }
+  .person .site svg { width: 18px; height: 18px; }
+  .person .site:hover { text-decoration: underline; }
   .residency p { margin: 0 0 10px; color: var(--ink-soft); }
   .residency .when { font-weight: 600; color: var(--green-deep); }
 
@@ -411,6 +417,10 @@
             <li data-i18n="about.role1"></li>
             <li data-i18n="about.role2"></li>
           </ul>
+          <a class="site" href="https://claudioaracena.com" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            claudioaracena.com
+          </a>
         </div>
         <div class="residency">
           <h3>IPAI Science Residency 2026</h3>
